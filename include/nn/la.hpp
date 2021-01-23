@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdio>
+
 // Linear Algebra types
 
 namespace la
@@ -139,12 +141,12 @@ struct Matrix
 		return *this;
 	}
 
-	Vector<M> &operator[](size_t n)
+	Vector<M> &operator[](const size_t n)
 	{
 		return values[n];
 	}
 
-	const Vector<M> &operator[](size_t n) const
+	const Vector<M> &operator[](const size_t n) const
 	{
 		return values[n];
 	}
@@ -236,22 +238,21 @@ auto product(Matrix<I, J> &result, const Matrix<I, K> &lhs, const Matrix<K, J> &
 
 // -----------------------------------------------------------------------------
 
-#include <cstdio>
-
 template <size_t N>
-auto print(const Vector<N> &x)
+auto print(const Vector<N> &x, const char* fmt = "% 8.4lf")
 {
 	for (size_t n = 0; n < N; n++)
 	{
 		putchar(n == 0 ? '{' : ' ');
-		printf("% .3f, ", x[n]);
+		printf(fmt, x[n]);
+		printf(", ");
 		putchar(n + 1 == N ? '}' : '\n');
 	}
 	putchar('\n');
 }
 
 template <size_t N, size_t M>
-auto print(const Matrix<N, M> &x)
+auto print(const Matrix<N, M> &x, const char* fmt = "% 8.4lf")
 {
 	for (size_t n = 0; n < N; n++)
 	{
@@ -260,7 +261,7 @@ auto print(const Matrix<N, M> &x)
 		for (size_t m = 0; m < M; m++)
 		{
 			if (m != 0) printf(", ");
-			printf("% 9.3f", x[n][m]);
+			printf(fmt, x[n][m]);
 		}
 		putchar('}');
 		putchar(n + 1 == N ? '}' : ',');

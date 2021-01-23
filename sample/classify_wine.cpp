@@ -1,5 +1,16 @@
-#include "nn.hpp"
-#include "layers.hpp"
+#include "nn/nn.hpp"
+
+/* So there's a super simple data set on the UCI Machine Learning
+ * Repository that you can check out here:
+ *
+ *  https://archive.ics.uci.edu/ml/datasets/Wine
+ *
+ * It's a data set of 13 data points and 3 classes that make a
+ * really good practise set for simple classification problems.
+ *
+ * This is a bare bones solution for it, will be adding better
+ * training methods soon.
+*/
 
 constexpr size_t NUM_SAMPLES = 178;
 constexpr size_t NUM_DATA_POINTS = 13;
@@ -20,6 +31,7 @@ size_t predicted_labels[NUM_SAMPLES] = {};
 
 int main(int argc, const char *argv[])
 {
+	puts("bap");
 	{
 		FILE *file;
 		if (0 != fopen_s(&file, "wine.data", "r"))
@@ -30,7 +42,7 @@ int main(int argc, const char *argv[])
 
 		for (size_t n = 0; n < NUM_SAMPLES; n++)
 		{
-			fscanf_s(file, "%d,", &labels[n]);
+			fscanf_s(file, "%zd,", &labels[n]);
 			nn::util::extract_expectation(labels[n], expectation[n]);
 
 			for (size_t m = 0; m < NUM_DATA_POINTS; m++)
@@ -49,7 +61,7 @@ int main(int argc, const char *argv[])
 	{
 		const double cost = nn::cost<nn::CrossEntropyCostFunction>(expectation, fwd, params);
 
-		printf("%3d, cost: %.5lf\n", epoch, cost);
+		printf("%3zd, cost: %.5lf\n", epoch, cost);
 
 		nn::backward<nn::CrossEntropyCostFunction>(expectation, fwd, params, deltaFwd, deltaParams);
 
@@ -68,10 +80,11 @@ int main(int argc, const char *argv[])
 	size_t confusion[NUM_CLASSES][NUM_CLASSES] = {};
 	nn::util::confusion(confusion, labels, predicted_labels);
 
+	// Print the confusion matrix to get a good idea of our accuracy
 	for (size_t j = 0; j < NUM_CLASSES; j++)
 	{
 		for (size_t i = 0; i < NUM_CLASSES; i++)
-			printf("% 2d, ", confusion[j][i]);
+			printf("% 2zd, ", confusion[j][i]);
 		
 		putchar('\n');
 	}
