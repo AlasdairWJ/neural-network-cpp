@@ -24,7 +24,7 @@ T rand(const T lower, const T upper)
 	static std::default_random_engine generator(static_cast<unsigned int>(std::chrono::system_clock::now().time_since_epoch().count()));
 	static std::uniform_int_distribution<T> distribution;
 
-	distribution.param(std::uniform_int_distribution<T>::param_type(lower, upper));
+	distribution.param(std::uniform_int_distribution<T>::param_type(lower, upper - 1));
 
 	return distribution(generator);
 }
@@ -92,14 +92,24 @@ auto extract_expectation(const std::array<LabelType, N> &labels, la::Matrix<N, M
 }
 
 template <typename LabelType, typename T, size_t N, size_t M>
-void confusion(T (&conf)[M][M], std::array<LabelType, N> &expected_labels, std::array<LabelType, N> &predicted_labels)
+void confusion(T (&conf)[M][M], const std::array<LabelType, N> &expected_labels, const std::array<LabelType, N> &predicted_labels)
 {
 	for (size_t n = 0; n < N; n++)
 		conf[expected_labels[n]][predicted_labels[n]]++;
 }
 
+template <typename LabelType, size_t N>
+double accuracy(std::array<LabelType, N> &expected_labels, std::array<LabelType, N> &predicted_labels)
+{
+	int correct = 0;
+	for (size_t n = 0; n < N; n++)
+		if (expected_labels[n] == predicted_labels[n])
+			correct++;
+	return static_cast<double>(correct) / N;
+}
+
 template <size_t DataSetSize, size_t InputSize, size_t OutputSize, size_t BatchSize>
-void generate_subbatch(const la::Matrix<DataSetSize, InputSize>& input,
+void generate_minibatch(const la::Matrix<DataSetSize, InputSize>& input,
 					   const la::Matrix<DataSetSize, OutputSize>& output,
 					   la::Matrix<BatchSize, InputSize>& batch_input,
 					   la::Matrix<BatchSize, OutputSize>& batch_output)

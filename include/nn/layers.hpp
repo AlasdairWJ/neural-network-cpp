@@ -125,6 +125,12 @@ struct FullyConnectedLayer
 			BiasType bias;
 
 			static constexpr size_t Count = WeightType::Count + BiasType::Count;
+
+			static void randomise(Params &params)
+			{
+				nn::util::randomise(params.weight.unravel()) /= OutputSize;
+				nn::util::randomise(params.bias);
+			}
 		};
 
 		static void forward(const la::Vector<InputSize>& input,

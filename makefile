@@ -1,16 +1,16 @@
 CXX = cl
-CXXFLAGS = /EHsc /nologo /std:c++17
+CXXFLAGS = /EHsc /nologo /std:c++17 /O2
 
-SAMPLE_SOURCE = sample/classify_wine.cpp
-SAMPLE_EXE = sample/classify_wine.exe
-SAMPLE_OBJ = sample/classify_wine.obj
+MNIST_SOURCE = mnist/mnist.cpp
+MNIST_EXE = mnist/mnist.exe
+MNIST_OBJ = mnist/mnist.obj
 
-all: clean sample
+all: clean mnist
 
-sample:
-	$(CXX) $(CXXFLAGS) /Fe:$(SAMPLE_EXE) /Fo:$(SAMPLE_OBJ) $(SAMPLE_SOURCE) /I "include"
+mnist:
+	$(CXX) $(CXXFLAGS) /Fe:$(MNIST_EXE) /Fo:$(MNIST_OBJ) $(MNIST_SOURCE) /I "include"
 
-.PHONY: sample
+.PHONY: mnist
 
 clean:
-	rm -f $(SAMPLE_EXE)
+	rm -f $(MNIST_EXE) $(MNIST_OBJ)
