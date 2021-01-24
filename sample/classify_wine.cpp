@@ -26,15 +26,14 @@ using MyNetwork = nn::Network<NUM_DATA_POINTS,
 nn::Forward<NUM_SAMPLES, MyNetwork> fwd, deltaFwd;
 la::Matrix<NUM_SAMPLES, NUM_CLASSES> expectation;
 nn::Params<MyNetwork> params, deltaParams;
-size_t labels[NUM_SAMPLES] = {};
-size_t predicted_labels[NUM_SAMPLES] = {};
+std::array<int, NUM_SAMPLES> labels = {};
+std::array<int, NUM_SAMPLES> predicted_labels = {};
 
 int main(int argc, const char *argv[])
 {
-	puts("bap");
 	{
 		FILE *file;
-		if (0 != fopen_s(&file, "wine.data", "r"))
+		if (0 != fopen_s(&file, "sample\\wine.data", "r"))
 		{
 			puts("failed to open file");
 			return 1;
@@ -42,7 +41,8 @@ int main(int argc, const char *argv[])
 
 		for (size_t n = 0; n < NUM_SAMPLES; n++)
 		{
-			fscanf_s(file, "%zd,", &labels[n]);
+			fscanf_s(file, "%d,", &labels[n]);
+			labels[n]--;
 			nn::util::extract_expectation(labels[n], expectation[n]);
 
 			for (size_t m = 0; m < NUM_DATA_POINTS; m++)
@@ -85,9 +85,9 @@ int main(int argc, const char *argv[])
 	{
 		for (size_t i = 0; i < NUM_CLASSES; i++)
 			printf("% 2zd, ", confusion[j][i]);
-		
+
 		putchar('\n');
 	}
-	
+
 	return 0;
 }

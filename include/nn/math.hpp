@@ -8,9 +8,10 @@ namespace nn
 namespace math
 {
 
-double kdelta(const size_t i, const size_t j)
+template <typename T>
+double kdelta(const T i, const T j)
 {
-	return i == j ? 1.0 : 0.0;
+	return i == j ? 1.0 : 0.0; // keep things type-flexible
 }
 
 template <size_t N>
@@ -43,6 +44,21 @@ template <size_t N>
 double min(const la::Vector<N> &x)
 {
 	return x[argmin(x)];
+}
+
+template <size_t N>
+double sum(const la::Vector<N> &x)
+{
+	double total = 0;
+	for (const double& value : x)
+		total += value;
+	return total;
+}
+
+template <size_t N>
+double average(const la::Vector<N> &x)
+{
+	return sum(x) / N;
 }
 
 } // math

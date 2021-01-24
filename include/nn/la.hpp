@@ -7,6 +7,9 @@
 namespace la
 {
 
+template <size_t N, size_t M>
+struct Matrix;
+
 template <size_t N>
 struct Vector
 {
@@ -30,15 +33,11 @@ struct Vector
 		return *this;
 	}
 
-	double &operator[](const size_t n)
-	{
-		return values[n];
-	}
+	double &at(const size_t n) { return values[n]; }
+	const double &at(const size_t n) const { return values[n]; }
 
-	const double &operator[](const size_t n) const
-	{
-		return values[n];
-	}
+	double &operator[](const size_t n) { return values[n]; }
+	const double &operator[](const size_t n) const { return values[n]; }
 
 	This &operator+=(const This& other)
 	{
@@ -84,6 +83,9 @@ struct Vector
 	RawType &raw() { return values; }
 	const RawType &raw() const { return values; }
 
+	double* data() { return &values[0]; }
+	const double* data() const { return &values[0]; }
+
 	template <size_t O>
 	Vector<N-O>& offset()
 	{
@@ -107,6 +109,32 @@ struct Vector
 	{
 		return *reinterpret_cast<const Vector<L>*>(this);
 	}
+
+	template <size_t O, size_t L>
+	Vector<L>& slice() { return offset<O>().truncate<L>(); }
+
+	template <size_t O, size_t L>
+	const Vector<L>& slice() const { return offset<O>().truncate<L>(); }
+
+	template <size_t Rows, size_t Cols>
+	Matrix<Rows, Cols>& ravel()
+	{
+		static_assert(Rows*Cols == N);
+		return *reinterpret_cast<Matrix<Rows, Cols>*>(this);
+	}
+
+	template <size_t Rows, size_t Cols>
+	const Matrix<Rows, Cols>& ravel() const
+	{
+		static_assert(Rows*Cols == N);
+		return *reinterpret_cast<Matrix<Rows, Cols>*>(this);
+	}
+
+	Matrix<N, 1>& as_column() { return *reinterpret_cast<Matrix<N, 1>*>(this); }
+	const Matrix<N, 1>& as_column() const { return *reinterpret_cast<Matrix<N, 1>*>(this); }
+
+	Matrix<1, N>& as_row() { return *reinterpret_cast<Matrix<1, N>*>(this); }
+	const Matrix<1, N>& as_row() const { return *reinterpret_cast<Matrix<1, N>*>(this); }
 
 private:
 	double values[N];
@@ -141,15 +169,14 @@ struct Matrix
 		return *this;
 	}
 
-	Vector<M> &operator[](const size_t n)
-	{
-		return values[n];
-	}
+	Vector<M> &at(const size_t n) { return values[n]; }
+	const Vector<M> &at(const size_t n) const { return values[n]; }
 
-	const Vector<M> &operator[](const size_t n) const
-	{
-		return values[n];
-	}
+	double &at(const size_t n, const size_t m) { return values[n][m]; }
+	const double &at(const size_t n, const size_t m) const { return values[n][m]; }
+
+	Vector<M> &operator[](const size_t n) { return values[n]; }
+	const Vector<M> &operator[](const size_t n) const { return values[n]; }
 
 	This &operator+=(const This& other)
 	{
@@ -179,8 +206,11 @@ struct Matrix
 		return *this;
 	}
 
-	RawType &data() { return values; }
-	const RawType &data() const { return values; }
+	RawType &raw() { return values; }
+	const RawType &raw() const { return values; }
+
+	double* data() { return values[0].data(); }
+	const double* data() const { return values[0].data(); }
 
 	Vector<Count>& unravel()
 	{
@@ -191,7 +221,6 @@ struct Matrix
 	{
 		return *reinterpret_cast<const Vector<Count>*>(this);
 	}
-
 
 private:
 	Vector<M> values[N];

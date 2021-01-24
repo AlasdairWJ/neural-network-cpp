@@ -1,4 +1,4 @@
-#pragma once 
+#pragma once
 
 #include <cmath>
 
@@ -9,12 +9,6 @@
 
 namespace nn
 {
-
-// Layers with no parameters should define Params as this
-struct NoParamsType
-{
-	static constexpr size_t Count = 0;
-};
 
 // -----------------------------------------------------------------------------
 
@@ -56,7 +50,7 @@ struct NonLinearityLayer
 	{
 		static constexpr size_t OutputSize = InputSize;
 
-		using Params = NoParamsType;
+		struct Params; // leave as incomplete type to imply no params
 
 		static void forward(const la::Vector<InputSize>& input,
 							la::Vector<OutputSize>& output)
@@ -83,7 +77,7 @@ struct SoftmaxLayer
 {
 	static constexpr size_t OutputSize = InputSize;
 
-	using Params = NoParamsType;
+	struct Params;
 
 	static void forward(const la::Vector<InputSize>& input,
 						la::Vector<OutputSize>& output)
@@ -100,14 +94,14 @@ struct SoftmaxLayer
 
 	static void backward(const la::Vector<InputSize>& input,
 						 const la::Vector<OutputSize>& output,
-						 la::Vector<InputSize>& delta_input,
-						 const la::Vector<OutputSize>& delta_output)
+						 la::Vector<InputSize>& deltaInput,
+						 const la::Vector<OutputSize>& deltaOutput)
 	{
 		for (size_t i = 0; i < InputSize; i++)
 		{
-			delta_input[i] = 0.0;
+			deltaInput[i] = 0.0;
 			for (size_t j = 0; j < OutputSize; j++)
-				delta_input[i] += delta_output[j] * (math::kdelta(i, j) - output[i]) * output[j];
+				deltaInput[i] += deltaOutput[j] * (math::kdelta(i, j) - output[i]) * output[j];
 		}
 	}
 };
@@ -149,12 +143,93 @@ struct FullyConnectedLayer
 		{
 			for (size_t j = 0; j < OutputSize; j++)
 			{
-				deltaParams.bias[j] = deltaOutput[j];
+				// we're ADDING to the values that exist in deltaParams
+				// bc allocating buffers for it would be a expensive.
+				// it'll be zero'd and averaged outside of this function.
+				deltaParams.bias[j] += deltaOutput[j];
 				for (size_t i = 0; i < InputSize; i++)
-					deltaParams.weight[i][j] = input[i] * deltaOutput[j];
+					deltaParams.weight[i][j] += input[i] * deltaOutput[j];
 			}
 
 			la::product(deltaInput, params.weight, deltaOutput);
+		}
+	};
+};
+
+// -----------------------------------------------------------------------------
+
+// One dimensional pooling, but still functional
+
+struct MaxPool
+{
+	template <size_t PoolSize>
+	double forward(const la::Vector<PoolSize>& input)
+	{
+		return math::max(input);
+	}
+
+	template <size_t PoolSize>
+	void backward(const la::Vector<PoolSize>& input,
+					const double output,
+					la::Vector<PoolSize>& deltaInput,
+					const double deltaOutput)
+	{
+		for (size_t i = 0; i < PoolSize; i++)
+			deltaInput[i] = input[i] == output ? deltaOutput : 0.0;
+	}
+};
+
+struct AveragePool
+{
+	template <size_t PoolSize>
+	double forward(const la::Vector<PoolSize>& input)
+	{
+		return math::average(input);
+	}
+
+	template <size_t PoolSize>
+	void backward(const la::Vector<PoolSize>& input,
+					const double output,
+					la::Vector<PoolSize>& deltaInput,
+					const double deltaOutput)
+	{
+		for (size_t i = 0; i < PoolSize; i++)
+			deltaInput[i] = deltaOutput / PoolSize;
+	}
+};
+
+template <size_t PoolSize, typename PoolMethod>
+struct PoolingLayer
+{
+	template <size_t InputSize>
+	struct Type
+	{
+		static_assert(InputSize % PoolSize == 0);
+
+		static constexpr size_t OutputSize = InputSize / PoolSize;
+
+		struct Params;
+
+		static void forward(const la::Vector<InputSize>& input,
+							la::Vector<OutputSize>& output)
+		{
+			const auto& inputMatrix = input.ravel<OutputSize, PoolSize>();
+
+			for (size_t j = 0; j < OutputSize; j++)
+				output[j] = PoolMethod::forward(inputMatrix[j]);
+
+		}
+
+		static void backward(const la::Vector<InputSize>& input,
+							 const la::Vector<OutputSize>& output,
+							 la::Vector<InputSize>& deltaInput,
+							 const la::Vector<OutputSize>& deltaOutput)
+		{
+			const auto& inputMatrix = input.ravel<OutputSize, PoolSize>();
+			auto& deltaInputMatrix = input.ravel<OutputSize, PoolSize>();
+
+			for (size_t j = 0; j < OutputSize; j++)
+				PoolMethod::backward(inputMatrix[j], output[j], deltaInputMatrix[j], deltaOutput[j]);
 		}
 	};
 };
