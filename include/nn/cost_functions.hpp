@@ -5,11 +5,14 @@
 namespace nn
 {
 
-struct CrossEntropyCostFunction
+namespace cost_functions
+{
+
+struct cross_entropy
 {
 	template <size_t N>
-	static double cost(const la::Vector<N>& expectation,
-					   const la::Vector<N>& prediction)
+	static double cost(const la::vector<N> &expectation,
+                       const la::vector<N> &prediction)
 	{
 		double value = 0.0;
 		for (size_t i = 0; i < N; i++)
@@ -18,9 +21,9 @@ struct CrossEntropyCostFunction
 	}
 
 	template <size_t N>
-	static void derivative(const la::Vector<N>& expectation,
-						   const la::Vector<N>& prediction,
-						   la::Vector<N>& delta)
+	static void derivative(const la::vector<N> &expectation,
+                           const la::vector<N> &prediction,
+                           la::vector<N> &delta)
 	{
 		for (size_t i = 0; i < N; i++)
 			delta[i] = (prediction[i] - expectation[i]) / (prediction[i] * (1.0 - prediction[i]));
@@ -29,11 +32,11 @@ struct CrossEntropyCostFunction
 
 // -----------------------------------------------------------------------------
 
-struct SumOfSquaredErrorsCostFunction
+struct sum_of_squared_errors
 {
 	template <size_t N>
-	static double cost(const la::Vector<N>& expectation,
-					   const la::Vector<N>& prediction)
+	static double cost(const la::vector<N> &expectation,
+                       const la::vector<N> &prediction)
 	{
 		double value = 0.0;
 		for (size_t i = 0; i < N; i++)
@@ -42,12 +45,15 @@ struct SumOfSquaredErrorsCostFunction
 	}
 
 	template <size_t N>
-	static void derivative(const la::Vector<N>& expectation,
-						   const la::Vector<N>& prediction,
-						   la::Vector<N>& delta)
+	static void derivative(const la::vector<N> &expectation,
+                           const la::vector<N> &prediction,
+                           la::vector<N> &delta)
 	{
 		for (size_t i = 0; i < N; i++)
 			delta[i] = prediction[i] - expectation[i];
 	}
 };
-}
+
+} // cost_functions
+
+} // nn

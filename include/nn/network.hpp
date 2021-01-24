@@ -31,13 +31,13 @@ template <
 	size_t InputSize,
 	template <size_t> typename ...LayerTypes
 >
-struct Network;
+struct network_t;
 
 template <
 	size_t InputSize,
 	template <size_t> typename TheLayerType
 >
-struct Network<InputSize, TheLayerType>
+struct network_t<InputSize, TheLayerType>
 {
 	static constexpr bool IsFinalLayer = true;
 
@@ -56,7 +56,7 @@ template <
 	template <size_t> typename NextLayerType,
 	template <size_t> typename ...RestLayerTypes
 >
-struct Network<InputSize, TheLayerType, NextLayerType, RestLayerTypes...>
+struct network_t<InputSize, TheLayerType, NextLayerType, RestLayerTypes...>
 {
 	static constexpr bool IsFinalLayer = false;
 
@@ -64,7 +64,7 @@ struct Network<InputSize, TheLayerType, NextLayerType, RestLayerTypes...>
 
 	static constexpr size_t OutputSize = LayerType::OutputSize;
 
-	using NextNetworkType = Network<OutputSize, NextLayerType, RestLayerTypes...>;
+	using NextNetworkType = network_t<OutputSize, NextLayerType, RestLayerTypes...>;
 
 	static constexpr size_t FinalOutputSize = NextNetworkType::FinalOutputSize;
 
@@ -74,23 +74,23 @@ struct Network<InputSize, TheLayerType, NextLayerType, RestLayerTypes...>
 // -----------------------------------------------------------------------------
 
 template <size_t N, typename NetworkType>
-struct Forward;
+struct forward_t;
 
 template <
 	size_t N,
 	size_t InputSize,
 	template <size_t> typename LayerType
 >
-struct Forward<N, Network<InputSize, LayerType>>
+struct forward_t<N, network_t<InputSize, LayerType>>
 {
-	la::Matrix<N, InputSize> input;
-	la::Matrix<N, LayerType<InputSize>::OutputSize> output;
+	la::matrix<N, InputSize> input;
+	la::matrix<N, LayerType<InputSize>::OutputSize> output;
 
-	auto& getNext() { return output; }
-	const auto& getNext() const { return output; }
+	auto& get_next() { return output; }
+	const auto& get_next() const { return output; }
 
-	auto& getOutput() { return output; }
-	const auto& getOutput() const { return output; }
+	auto& get_output() { return output; }
+	const auto& get_output() const { return output; }
 };
 
 template <
@@ -100,48 +100,48 @@ template <
 	template <size_t> typename NextLayerType,
 	template <size_t> typename ...RestLayerTypes
 >
-struct Forward<N, Network<InputSize, LayerType, NextLayerType, RestLayerTypes...>>
+struct forward_t<N, network_t<InputSize, LayerType, NextLayerType, RestLayerTypes...>>
 {
-	la::Matrix<N, InputSize> input;
+	la::matrix<N, InputSize> input;
 
-	Forward<N, Network<LayerType<InputSize>::OutputSize, NextLayerType, RestLayerTypes...>> next;
+	forward_t<N, network_t<LayerType<InputSize>::OutputSize, NextLayerType, RestLayerTypes...>> next;
 
-	auto& getNext() { return next.input; }
-	const auto& getNext() const { return next.input; }
+	auto& get_next() { return next.input; }
+	const auto& get_next() const { return next.input; }
 
-	auto& getOutput() { return next.getOutput(); }
-	const auto& getOutput() const { return next.getOutput(); }
+	auto& get_output() { return next.getOutput(); }
+	const auto& get_output() const { return next.getOutput(); }
 };
 
 // -----------------------------------------------------------------------------
 
 template <typename NetworkType>
-using Params = la::Vector<NetworkType::ParamCount + 1>;
+using params_t = la::vector<NetworkType::ParamCount + 1>;
 
 template <size_t N, typename NetworkType>
-using Output = la::Matrix<N, NetworkType::FinalOutputSize>;
+using output_t = la::matrix<N, NetworkType::FinalOutputSize>;
 
 // -----------------------------------------------------------------------------
 
 // params should randomise themselves, as suitable param ranges will vary
 template <typename NetworkType>
-void randomiseParams(Params<NetworkType>& params)
+void randomise_params(params_t<NetworkType>& params)
 {
 	if constexpr(ParamCount<NetworkType::LayerType>() != 0)
 		NetworkType::LayerType::Params::randomise(reinterpret_cast<typename NetworkType::LayerType::Params&>(params));
 	if constexpr(!NetworkType::IsFinalLayer)
-		randomiseParams<NetworkType::NextNetworkType>(params.offset<ParamCount<NetworkType::LayerType>()>());
+		randomise_params<NetworkType::NextNetworkType>(params.offset<ParamCount<NetworkType::LayerType>()>());
 }
 
 // -----------------------------------------------------------------------------
 
 template <size_t N, typename NetworkType>
-const Output<N, NetworkType>& forward(Forward<N, NetworkType>& fwd,
-									  const Params<NetworkType>& params)
+auto forward(forward_t<N, NetworkType>& fwd,
+             const params_t<NetworkType>& params) -> const output_t<N, NetworkType>&
 {
 	if constexpr(ParamCount<NetworkType::LayerType>() == 0)
 	{
-		auto& output = fwd.getNext();
+		auto& output = fwd.get_next();
 		for (size_t n = 0; n < N; n++)
 			NetworkType::LayerType::forward(fwd.input[n], output[n]);
 	}
@@ -149,7 +149,7 @@ const Output<N, NetworkType>& forward(Forward<N, NetworkType>& fwd,
 	{
 		const auto& layerParams = reinterpret_cast<const NetworkType::LayerType::Params&>(params);
 
-		auto& output = fwd.getNext();
+		auto& output = fwd.get_next();
 		for (size_t n = 0; n < N; n++)
 			NetworkType::LayerType::forward(fwd.input[n], output[n], layerParams);
 	}
@@ -168,8 +168,8 @@ const Output<N, NetworkType>& forward(Forward<N, NetworkType>& fwd,
 // -----------------------------------------------------------------------------
 
 template <typename CostFunctionType, size_t N, size_t OutputSize>
-double cost(const la::Matrix<N, OutputSize>& expectation,
-			const la::Matrix<N, OutputSize>& prediction)
+double cost(const la::matrix<N, OutputSize>& expectation,
+            const la::matrix<N, OutputSize>& prediction)
 {
 	double value = 0.0;
 	for (size_t n = 0; n < N; n++)
@@ -178,9 +178,9 @@ double cost(const la::Matrix<N, OutputSize>& expectation,
 }
 
 template <typename CostFunctionType, size_t N, typename NetworkType>
-double cost(const Output<N, NetworkType>& expectation,
-			Forward<N, NetworkType>& fwd,
-			const Params<NetworkType>& params)
+double cost(const output_t<N, NetworkType>& expectation,
+            forward_t<N, NetworkType>& fwd,
+            const params_t<NetworkType>& params)
 {
 	return cost<CostFunctionType>(expectation, forward(fwd, params));
 }
@@ -188,16 +188,16 @@ double cost(const Output<N, NetworkType>& expectation,
 // -----------------------------------------------------------------------------
 
 template <typename CostFunctionType, size_t N, typename NetworkType>
-void backward(const Output<N, NetworkType>& expectation,
-			  const Forward<N, NetworkType>& fwd,
-			  const Params<NetworkType>& params,
-			  Forward<N, NetworkType>& deltaFwd,
-			  Params<NetworkType>& deltaParams)
+auto backward(const output_t<N, NetworkType>& expectation,
+              const forward_t<N, NetworkType>& fwd,
+              const params_t<NetworkType>& params,
+              forward_t<N, NetworkType>& delta_fwd,
+              params_t<NetworkType>& delta_params) -> decltype(delta_params)
 {
 	if constexpr(NetworkType::IsFinalLayer)
 	{
 		for (size_t n = 0; n < N; n++)
-			CostFunctionType::derivative(expectation[n], fwd.output[n], deltaFwd.output[n]);
+			CostFunctionType::derivative(expectation[n], fwd.output[n], delta_fwd.output[n]);
 	}
 	else
 	{
@@ -205,13 +205,13 @@ void backward(const Output<N, NetworkType>& expectation,
 			expectation,
 			fwd.next,
 			params.offset<ParamCount<NetworkType::LayerType>()>(),
-			deltaFwd.next,
-			deltaParams.offset<ParamCount<NetworkType::LayerType>()>()
+			delta_fwd.next,
+			delta_params.offset<ParamCount<NetworkType::LayerType>()>()
 		);
 	}
 
-	const auto &output = fwd.getNext();
-	const auto &deltaOutput = deltaFwd.getNext();
+	const auto &output = fwd.get_next();
+	const auto &delta_output = delta_fwd.get_next();
 
 	if constexpr(ParamCount<NetworkType::LayerType>() == 0)
 	{
@@ -220,16 +220,16 @@ void backward(const Output<N, NetworkType>& expectation,
 			NetworkType::LayerType::backward(
 				fwd.input[n],
 				output[n],
-				deltaFwd.input[n],
-				deltaOutput[n]
+				delta_fwd.input[n],
+				delta_output[n]
 			);
 		}
 	}
 	else
 	{
-		auto& thisDeltaParams = deltaParams.truncate<ParamCount<NetworkType::LayerType>()>();
+		auto& this_delta_params = delta_params.truncate<ParamCount<NetworkType::LayerType>()>();
 
-		thisDeltaParams.zero();
+		this_delta_params.zero();
 
 		for (size_t n = 0; n < N; n++)
 		{
@@ -237,42 +237,44 @@ void backward(const Output<N, NetworkType>& expectation,
 				fwd.input[n],
 				output[n],
 				reinterpret_cast<const NetworkType::LayerType::Params&>(params),
-				deltaFwd.input[n],
-				deltaOutput[n],
-				reinterpret_cast<typename NetworkType::LayerType::Params&>(deltaParams)
+				delta_fwd.input[n],
+				delta_output[n],
+				reinterpret_cast<typename NetworkType::LayerType::Params&>(delta_params)
 			);
 		}
 
-		thisDeltaParams /= N;
+		this_delta_params /= N;
 	}
+
+	return delta_params;
 }
 
 // -----------------------------------------------------------------------------
 
 template <typename CostFunctionType, size_t N, typename NetworkType>
-auto numerical_gradient(const la::Matrix<N, NetworkType::FinalOutputSize>& expectation,
-						Forward<N, NetworkType>& fwd,
-						Params<NetworkType>& params,
-						Params<NetworkType>& deltaParams) -> decltype(deltaParams)
+auto numerical_gradient(const la::matrix<N, NetworkType::FinalOutputSize>& expectation,
+                        forward_t<N, NetworkType>& fwd,
+                        params_t<NetworkType>& params,
+                        params_t<NetworkType>& delta_params) -> decltype(delta_params)
 {
 	const double eps = 1e-5;
 
 	for (size_t i = 0; i < NetworkType::NumParams; i++)
 	{
-		const double originalParamValue = params[i];
+		const double param_value = params[i];
 
-		params[i] = originalParamValue + eps;
+		params[i] = param_value + eps;
 		const double cost_plus = cost<CostFunctionType>(expectation, fwd, params);
 
-		params[i] = originalParamValue - eps;
+		params[i] = param_value - eps;
 		const double cost_minus = cost<CostFunctionType>(expectation, fwd, params);
 
-		params[i] = originalParamValue;
+		params[i] = param_value;
 
-		deltaParams[i] = 0.5 * (cost_plus - cost_minus) / eps;
+		delta_params[i] = 0.5 * (cost_plus - cost_minus) / eps;
 	}
 
-	return deltaParams;
+	return delta_params;
 }
 
 }

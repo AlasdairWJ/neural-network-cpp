@@ -30,7 +30,7 @@ T rand(const T lower, const T upper)
 }
 
 template <size_t N>
-auto randomise(la::Vector<N> &values, const double mu = 0.0, const double sigma = 1.0) -> decltype(values)
+auto randomise(la::vector<N> &values, const double mu = 0.0, const double sigma = 1.0) -> decltype(values)
 {
 	for (double &value : values)
 		value = randn(mu, sigma);
@@ -38,7 +38,7 @@ auto randomise(la::Vector<N> &values, const double mu = 0.0, const double sigma 
 }
 
 template <size_t N, size_t M>
-auto normalise(la::Matrix<N, M> &values) -> decltype(values)
+auto normalise(la::matrix<N, M> &values) -> decltype(values)
 {
 	for (size_t m = 0; m < M; m++)
 	{
@@ -62,13 +62,13 @@ auto normalise(la::Matrix<N, M> &values) -> decltype(values)
 }
 
 template <typename LabelType, size_t M>
-LabelType classify(const la::Vector<M> &prediction)
+LabelType classify(const la::vector<M> &prediction)
 {
 	return static_cast<LabelType>(math::argmax(prediction));
 }
 
 template <typename LabelType, size_t N, size_t M>
-auto classify(const la::Matrix<N, M> &prediction, std::array<LabelType, N> &labels) -> decltype(labels)
+auto classify(const la::matrix<N, M> &prediction, std::array<LabelType, N> &labels) -> decltype(labels)
 {
 	for (size_t n = 0; n < N; n++)
 		labels[n] = classify<LabelType>(prediction[n]);
@@ -76,7 +76,7 @@ auto classify(const la::Matrix<N, M> &prediction, std::array<LabelType, N> &labe
 }
 
 template <typename LabelType, size_t M>
-auto extract_expectation(const LabelType label, la::Vector<M> &expectation) -> decltype(expectation)
+auto extract_expectation(const LabelType label, la::vector<M> &expectation) -> decltype(expectation)
 {
 	for (size_t m = 0; m < M; m++)
 		expectation[m] = math::kdelta(static_cast<size_t>(label), m);
@@ -84,7 +84,7 @@ auto extract_expectation(const LabelType label, la::Vector<M> &expectation) -> d
 }
 
 template <typename LabelType, size_t N, size_t M>
-auto extract_expectation(const std::array<LabelType, N> &labels, la::Matrix<N, M> &expectation) -> decltype(expectation)
+auto extract_expectation(const std::array<LabelType, N> &labels, la::matrix<N, M> &expectation) -> decltype(expectation)
 {
 	for (size_t n = 0; n < N; n++)
 		extract_expectation(labels[n], expectation[n]);
@@ -109,10 +109,10 @@ double accuracy(std::array<LabelType, N> &expected_labels, std::array<LabelType,
 }
 
 template <size_t DataSetSize, size_t InputSize, size_t OutputSize, size_t BatchSize>
-void generate_minibatch(const la::Matrix<DataSetSize, InputSize>& input,
-					   const la::Matrix<DataSetSize, OutputSize>& output,
-					   la::Matrix<BatchSize, InputSize>& batch_input,
-					   la::Matrix<BatchSize, OutputSize>& batch_output)
+void generate_minibatch(const la::matrix<DataSetSize, InputSize>& input,
+					   const la::matrix<DataSetSize, OutputSize>& output,
+					   la::matrix<BatchSize, InputSize>& batch_input,
+					   la::matrix<BatchSize, OutputSize>& batch_output)
 {
 	for (size_t n = 0; n < BatchSize; n++)
 	{

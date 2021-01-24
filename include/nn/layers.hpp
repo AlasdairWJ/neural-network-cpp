@@ -12,8 +12,12 @@ namespace nn
 
 // -----------------------------------------------------------------------------
 
-// For use with NonLinearityLayer
-struct LogisticFunction
+namespace non_linearity_functions
+{
+
+// for use with layers::non_linearity
+
+struct logistic
 {
 	static double evaluate(const double x)
 	{
@@ -26,8 +30,7 @@ struct LogisticFunction
 	}
 };
 
-// For use with NonLinearityLayer
-struct SoftplusFunction
+struct softplus
 {
 	static double evaluate(const double x)
 	{
@@ -40,47 +43,105 @@ struct SoftplusFunction
 	}
 };
 
+} // non_linearity_functions
+
 // -----------------------------------------------------------------------------
 
+namespace pooling_methods
+{
+
+// for use with layers::pooling
+
+struct max
+{
+	template <size_t PoolSize>
+	double forward(const la::vector<PoolSize> &input)
+	{
+		return math::max(input);
+	}
+
+	template <size_t PoolSize>
+	void backward(const la::vector<PoolSize> &input,
+                  const double output,
+                  la::vector<PoolSize> &delta_input,
+                  const double delta_output)
+	{
+		for (size_t i = 0; i < PoolSize; i++)
+			delta_input[i] = input[i] == output ? delta_output : 0.0;
+	}
+};
+
+struct average
+{
+	template <size_t PoolSize>
+	double forward(const la::vector<PoolSize> &input)
+	{
+		return math::average(input);
+	}
+
+	template <size_t PoolSize>
+	void backward(const la::vector<PoolSize> &input,
+                  const double output,
+                  la::vector<PoolSize> &deltaInput,
+                  const double delta_output)
+	{
+		for (size_t i = 0; i < PoolSize; i++)
+			deltaInput[i] = delta_output / PoolSize;
+	}
+};
+
+} // pooling_methods
+
+// -----------------------------------------------------------------------------
+
+namespace layers
+{
+
 template <typename FunctionType>
-struct NonLinearityLayer
+struct non_linearity
 {
 	template <size_t InputSize>
-	struct Type
+	struct type
 	{
 		static constexpr size_t OutputSize = InputSize;
 
 		struct Params; // leave as incomplete type to imply no params
 
-		static void forward(const la::Vector<InputSize>& input,
-							la::Vector<OutputSize>& output)
+		static void forward(const la::vector<InputSize> &input,
+                            la::vector<OutputSize> &output)
 		{
 			for (size_t i = 0; i < InputSize; i++)
 				output[i] = FunctionType::evaluate(input[i]);
 		}
 
-		static void backward(const la::Vector<InputSize>& input,
-							 const la::Vector<OutputSize>& output,
-							 la::Vector<InputSize>& deltaInput,
-							 const la::Vector<OutputSize>& deltaOutput)
+		static void backward(const la::vector<InputSize> &input,
+                             const la::vector<OutputSize> &output,
+                             la::vector<InputSize> &delta_input,
+                             const la::vector<OutputSize> &delta_output)
 		{
 			for (size_t i = 0; i < InputSize; i++)
-				deltaInput[i] = deltaOutput[i] * FunctionType::derivative(input[i], output[i]);
+				delta_input[i] = delta_output[i] * FunctionType::derivative(input[i], output[i]);
 		}
 	};
 };
 
+template <size_t InputSize>
+using logistic = non_linearity<non_linearity_functions::logistic>::type<InputSize>;
+
+template <size_t InputSize>
+using softplus = non_linearity<non_linearity_functions::softplus>::type<InputSize>;
+
 // -----------------------------------------------------------------------------
 
 template <size_t InputSize>
-struct SoftmaxLayer
+struct softmax
 {
 	static constexpr size_t OutputSize = InputSize;
 
 	struct Params;
 
-	static void forward(const la::Vector<InputSize>& input,
-						la::Vector<OutputSize>& output)
+	static void forward(const la::vector<InputSize> &input,
+                        la::vector<OutputSize> &output)
 	{
 		const double maxValue = math::max(input);
 
@@ -92,10 +153,10 @@ struct SoftmaxLayer
 			output[i] /= sum;
 	}
 
-	static void backward(const la::Vector<InputSize>& input,
-						 const la::Vector<OutputSize>& output,
-						 la::Vector<InputSize>& deltaInput,
-						 const la::Vector<OutputSize>& deltaOutput)
+	static void backward(const la::vector<InputSize> &input,
+                         const la::vector<OutputSize> &output,
+                         la::vector<InputSize> &deltaInput,
+                         const la::vector<OutputSize> &deltaOutput)
 	{
 		for (size_t i = 0; i < InputSize; i++)
 		{
@@ -109,17 +170,17 @@ struct SoftmaxLayer
 // -----------------------------------------------------------------------------
 
 template <size_t OutputSize_>
-struct FullyConnectedLayer
+struct fully_connected
 {
 	template <size_t InputSize>
-	struct Type
+	struct type
 	{
 		static constexpr size_t OutputSize = OutputSize_;
 
 		struct Params
 		{
-			using WeightType = la::Matrix<InputSize, OutputSize>;
-			using BiasType = la::Vector<OutputSize>;
+			using WeightType = la::matrix<InputSize, OutputSize>;
+			using BiasType = la::vector<OutputSize>;
 
 			WeightType weight;
 			BiasType bias;
@@ -133,111 +194,71 @@ struct FullyConnectedLayer
 			}
 		};
 
-		static void forward(const la::Vector<InputSize>& input,
-							la::Vector<OutputSize>& output,
-							const Params& params)
+		static void forward(const la::vector<InputSize> &input,
+                            la::vector<OutputSize> &output,
+                            const Params &params)
 		{
 			la::product(output, input, params.weight) += params.bias;
 		}
 
-		static void backward(const la::Vector<InputSize>& input,
-							 const la::Vector<OutputSize>& output,
-							 const Params& params,
-							 la::Vector<InputSize>& deltaInput,
-							 const la::Vector<OutputSize>& deltaOutput,
-							 Params& deltaParams)
+		static void backward(const la::vector<InputSize> &input,
+                             const la::vector<OutputSize> &output,
+                             const Params &params,
+                             la::vector<InputSize> &delta_input,
+                             const la::vector<OutputSize> &delta_output,
+                             Params &delta_params)
 		{
 			for (size_t j = 0; j < OutputSize; j++)
 			{
 				// we're ADDING to the values that exist in deltaParams
 				// bc allocating buffers for it would be a expensive.
 				// it'll be zero'd and averaged outside of this function.
-				deltaParams.bias[j] += deltaOutput[j];
+				delta_params.bias[j] += delta_output[j];
 				for (size_t i = 0; i < InputSize; i++)
-					deltaParams.weight[i][j] += input[i] * deltaOutput[j];
+					delta_params.weight[i][j] += input[i] * delta_output[j];
 			}
 
-			la::product(deltaInput, params.weight, deltaOutput);
+			la::product(delta_input, params.weight, delta_output);
 		}
 	};
 };
 
-// -----------------------------------------------------------------------------
-
-// One dimensional pooling, but still functional
-
-struct MaxPool
-{
-	template <size_t PoolSize>
-	double forward(const la::Vector<PoolSize>& input)
-	{
-		return math::max(input);
-	}
-
-	template <size_t PoolSize>
-	void backward(const la::Vector<PoolSize>& input,
-					const double output,
-					la::Vector<PoolSize>& deltaInput,
-					const double deltaOutput)
-	{
-		for (size_t i = 0; i < PoolSize; i++)
-			deltaInput[i] = input[i] == output ? deltaOutput : 0.0;
-	}
-};
-
-struct AveragePool
-{
-	template <size_t PoolSize>
-	double forward(const la::Vector<PoolSize>& input)
-	{
-		return math::average(input);
-	}
-
-	template <size_t PoolSize>
-	void backward(const la::Vector<PoolSize>& input,
-					const double output,
-					la::Vector<PoolSize>& deltaInput,
-					const double deltaOutput)
-	{
-		for (size_t i = 0; i < PoolSize; i++)
-			deltaInput[i] = deltaOutput / PoolSize;
-	}
-};
-
 template <size_t PoolSize, typename PoolMethod>
-struct PoolingLayer
+struct pooling
 {
 	template <size_t InputSize>
-	struct Type
+	struct type
 	{
-		static_assert(InputSize % PoolSize == 0);
+		static_assert(InputSize %PoolSize == 0);
 
 		static constexpr size_t OutputSize = InputSize / PoolSize;
 
 		struct Params;
 
-		static void forward(const la::Vector<InputSize>& input,
-							la::Vector<OutputSize>& output)
+		static void forward(const la::vector<InputSize> &input,
+                            la::vector<OutputSize> &output)
 		{
-			const auto& inputMatrix = input.ravel<OutputSize, PoolSize>();
+			const auto &input_m = input.ravel<OutputSize, PoolSize>();
 
 			for (size_t j = 0; j < OutputSize; j++)
-				output[j] = PoolMethod::forward(inputMatrix[j]);
+				output[j] = PoolMethod::forward(input_m[j]);
 
 		}
 
-		static void backward(const la::Vector<InputSize>& input,
-							 const la::Vector<OutputSize>& output,
-							 la::Vector<InputSize>& deltaInput,
-							 const la::Vector<OutputSize>& deltaOutput)
+		static void backward(const la::vector<InputSize> &input,
+                             const la::vector<OutputSize> &output,
+                             la::vector<InputSize> &delta_input,
+                             const la::vector<OutputSize> &delta_output)
 		{
-			const auto& inputMatrix = input.ravel<OutputSize, PoolSize>();
-			auto& deltaInputMatrix = input.ravel<OutputSize, PoolSize>();
+			const auto &input_m = input.ravel<OutputSize, PoolSize>();
+			auto &delta_input_m = delta_input.ravel<OutputSize, PoolSize>();
 
 			for (size_t j = 0; j < OutputSize; j++)
-				PoolMethod::backward(inputMatrix[j], output[j], deltaInputMatrix[j], deltaOutput[j]);
+				PoolMethod::backward(input_m[j], output[j], delta_input_m[j], delta_output[j]);
 		}
 	};
 };
+
+} // layers
 
 } // nn

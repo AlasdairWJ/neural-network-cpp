@@ -8,16 +8,16 @@ namespace la
 {
 
 template <size_t N, size_t M>
-struct Matrix;
+struct matrix;
 
 template <size_t N>
-struct Vector
+struct vector
 {
 	static_assert(N != 0);
 
 	static const size_t Count = N;
 
-	using This = Vector<N>;
+	using This = vector<N>;
 	using RawType = double[N];
 
 	double* begin() { return &values[0]; }
@@ -87,54 +87,54 @@ struct Vector
 	const double* data() const { return &values[0]; }
 
 	template <size_t O>
-	Vector<N-O>& offset()
+	vector<N-O>& offset()
 	{
-		return *reinterpret_cast<Vector<N-O>*>(&values[O]);
+		return *reinterpret_cast<vector<N-O>*>(&values[O]);
 	}
 
 	template <size_t O>
-	const Vector<N-O>& offset() const
+	const vector<N-O>& offset() const
 	{
-		return *reinterpret_cast<const Vector<N-O>*>(&values[O]);
+		return *reinterpret_cast<const vector<N-O>*>(&values[O]);
 	}
 
 	template <size_t L>
-	Vector<L>& truncate()
+	vector<L>& truncate()
 	{
-		return *reinterpret_cast<Vector<L>*>(this);
+		return *reinterpret_cast<vector<L>*>(this);
 	}
 
 	template <size_t L>
-	const Vector<L>& truncate() const
+	const vector<L>& truncate() const
 	{
-		return *reinterpret_cast<const Vector<L>*>(this);
+		return *reinterpret_cast<const vector<L>*>(this);
 	}
 
 	template <size_t O, size_t L>
-	Vector<L>& slice() { return offset<O>().truncate<L>(); }
+	vector<L>& slice() { return offset<O>().truncate<L>(); }
 
 	template <size_t O, size_t L>
-	const Vector<L>& slice() const { return offset<O>().truncate<L>(); }
+	const vector<L>& slice() const { return offset<O>().truncate<L>(); }
 
 	template <size_t Rows, size_t Cols>
-	Matrix<Rows, Cols>& ravel()
+	matrix<Rows, Cols>& ravel()
 	{
 		static_assert(Rows*Cols == N);
-		return *reinterpret_cast<Matrix<Rows, Cols>*>(this);
+		return *reinterpret_cast<matrix<Rows, Cols>*>(this);
 	}
 
 	template <size_t Rows, size_t Cols>
-	const Matrix<Rows, Cols>& ravel() const
+	const matrix<Rows, Cols>& ravel() const
 	{
 		static_assert(Rows*Cols == N);
-		return *reinterpret_cast<Matrix<Rows, Cols>*>(this);
+		return *reinterpret_cast<matrix<Rows, Cols>*>(this);
 	}
 
-	Matrix<N, 1>& as_column() { return *reinterpret_cast<Matrix<N, 1>*>(this); }
-	const Matrix<N, 1>& as_column() const { return *reinterpret_cast<Matrix<N, 1>*>(this); }
+	matrix<N, 1>& as_column() { return *reinterpret_cast<matrix<N, 1>*>(this); }
+	const matrix<N, 1>& as_column() const { return *reinterpret_cast<matrix<N, 1>*>(this); }
 
-	Matrix<1, N>& as_row() { return *reinterpret_cast<Matrix<1, N>*>(this); }
-	const Matrix<1, N>& as_row() const { return *reinterpret_cast<Matrix<1, N>*>(this); }
+	matrix<1, N>& as_row() { return *reinterpret_cast<matrix<1, N>*>(this); }
+	const matrix<1, N>& as_row() const { return *reinterpret_cast<matrix<1, N>*>(this); }
 
 private:
 	double values[N];
@@ -143,7 +143,7 @@ private:
 // -----------------------------------------------------------------------------
 
 template <size_t N, size_t M>
-struct Matrix
+struct matrix
 {
 	static_assert(N != 0);
 	static_assert(M != 0);
@@ -153,14 +153,14 @@ struct Matrix
 	static const size_t Rows = N;
 	static const size_t Columns = M;
 
-	using This = Matrix<N, M>;
+	using This = matrix<N, M>;
 	using RawType = double;
 
-	Vector<M>* begin() { return &values[0]; }
-	Vector<M>* end() { return &values[0] + N; }
+	vector<M>* begin() { return &values[0]; }
+	vector<M>* end() { return &values[0] + N; }
 
-	const Vector<M>* begin() const { return &values[0]; }
-	const Vector<M>* end() const { return &values[0] + N; }
+	const vector<M>* begin() const { return &values[0]; }
+	const vector<M>* end() const { return &values[0] + N; }
 
 	This& zero()
 	{
@@ -169,14 +169,14 @@ struct Matrix
 		return *this;
 	}
 
-	Vector<M> &at(const size_t n) { return values[n]; }
-	const Vector<M> &at(const size_t n) const { return values[n]; }
+	vector<M> &at(const size_t n) { return values[n]; }
+	const vector<M> &at(const size_t n) const { return values[n]; }
 
 	double &at(const size_t n, const size_t m) { return values[n][m]; }
 	const double &at(const size_t n, const size_t m) const { return values[n][m]; }
 
-	Vector<M> &operator[](const size_t n) { return values[n]; }
-	const Vector<M> &operator[](const size_t n) const { return values[n]; }
+	vector<M> &operator[](const size_t n) { return values[n]; }
+	const vector<M> &operator[](const size_t n) const { return values[n]; }
 
 	This &operator+=(const This& other)
 	{
@@ -212,24 +212,24 @@ struct Matrix
 	double* data() { return values[0].data(); }
 	const double* data() const { return values[0].data(); }
 
-	Vector<Count>& unravel()
+	vector<Count>& unravel()
 	{
-		return *reinterpret_cast<Vector<Count>*>(this);
+		return *reinterpret_cast<vector<Count>*>(this);
 	}
 
-	const Vector<Count>& unravel() const
+	const vector<Count>& unravel() const
 	{
-		return *reinterpret_cast<const Vector<Count>*>(this);
+		return *reinterpret_cast<const vector<Count>*>(this);
 	}
 
 private:
-	Vector<M> values[N];
+	vector<M> values[N];
 };
 
 // -----------------------------------------------------------------------------
 
 template <size_t N, size_t M>
-auto product(Vector<M> &result, const Vector<N> &lhs, const Matrix<N, M> &rhs) -> decltype(result)
+auto product(vector<M> &result, const vector<N> &lhs, const matrix<N, M> &rhs) -> decltype(result)
 {
 	for (size_t m = 0; m < M; m++)
 	{
@@ -241,7 +241,7 @@ auto product(Vector<M> &result, const Vector<N> &lhs, const Matrix<N, M> &rhs) -
 }
 
 template <size_t N, size_t M>
-auto product(Vector<N> &result, const Matrix<N, M> &lhs, const Vector<M> &rhs) -> decltype(result)
+auto product(vector<N> &result, const matrix<N, M> &lhs, const vector<M> &rhs) -> decltype(result)
 {
 	for (size_t n = 0; n < N; n++)
 	{
@@ -253,7 +253,7 @@ auto product(Vector<N> &result, const Matrix<N, M> &lhs, const Vector<M> &rhs) -
 }
 
 template <size_t I, size_t J, size_t K>
-auto product(Matrix<I, J> &result, const Matrix<I, K> &lhs, const Matrix<K, J> &rhs) -> decltype(result)
+auto product(matrix<I, J> &result, const matrix<I, K> &lhs, const matrix<K, J> &rhs) -> decltype(result)
 {
 	for (size_t i = 0; i < I; i++)
 		for (size_t j = 0; j < J; j++)
@@ -268,7 +268,7 @@ auto product(Matrix<I, J> &result, const Matrix<I, K> &lhs, const Matrix<K, J> &
 // -----------------------------------------------------------------------------
 
 template <size_t N>
-auto print(const Vector<N> &x, const char* fmt = "% 8.4lf")
+auto print(const vector<N> &x, const char* fmt = "% 8.4lf")
 {
 	for (size_t n = 0; n < N; n++)
 	{
@@ -281,7 +281,7 @@ auto print(const Vector<N> &x, const char* fmt = "% 8.4lf")
 }
 
 template <size_t N, size_t M>
-auto print(const Matrix<N, M> &x, const char* fmt = "% 8.4lf")
+auto print(const matrix<N, M> &x, const char* fmt = "% 8.4lf")
 {
 	for (size_t n = 0; n < N; n++)
 	{

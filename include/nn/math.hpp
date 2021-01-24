@@ -15,7 +15,7 @@ double kdelta(const T i, const T j)
 }
 
 template <size_t N>
-size_t argmax(const la::Vector<N> &x)
+size_t argmax(const la::vector<N> &x)
 {
 	size_t best_n = 0;
 	for (size_t n = 1; n < N; n++)
@@ -25,13 +25,13 @@ size_t argmax(const la::Vector<N> &x)
 }
 
 template <size_t N>
-double max(const la::Vector<N> &x)
+double max(const la::vector<N> &x)
 {
 	return x[argmax(x)];
 }
 
 template <size_t N>
-size_t argmin(const la::Vector<N> &x)
+size_t argmin(const la::vector<N> &x)
 {
 	size_t best_n = 0;
 	for (size_t n = 1; n < N; n++)
@@ -41,13 +41,13 @@ size_t argmin(const la::Vector<N> &x)
 }
 
 template <size_t N>
-double min(const la::Vector<N> &x)
+double min(const la::vector<N> &x)
 {
 	return x[argmin(x)];
 }
 
 template <size_t N>
-double sum(const la::Vector<N> &x)
+double sum(const la::vector<N> &x)
 {
 	double total = 0;
 	for (const double& value : x)
@@ -56,7 +56,7 @@ double sum(const la::Vector<N> &x)
 }
 
 template <size_t N>
-double average(const la::Vector<N> &x)
+double average(const la::vector<N> &x)
 {
 	return sum(x) / N;
 }
