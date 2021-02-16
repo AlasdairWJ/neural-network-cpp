@@ -1,7 +1,7 @@
 CXX = cl
 CXXFLAGS = /EHsc /nologo /std:c++17 /O2
 
-MNIST_SOURCE = mnist/mnist.cpp
+MNIST_SOURCE = mnist/main.cpp
 MNIST_EXE = mnist/mnist.exe
 MNIST_OBJ = mnist/mnist.obj
 
